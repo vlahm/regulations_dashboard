@@ -41,7 +41,7 @@ sort(dates[which(dates!='NA')], decreasing=TRUE)
 #it may be that a lot of the recent days are showing up as NA
 
 #issue 2: some of the titles currently on the dashboard doesn't show up here.
-x <- fr_search(term='fisheries', version='v4')
+x <- fr_search(term='fisheries', version='v1') #also, no other api versions seem to be accessible this way
 unique(x$results$title)
 
 
