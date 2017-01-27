@@ -1,4 +1,4 @@
-#Federal Register API v3 R client
+#Federal Register API v1 R client
 #Author: Mike Vlah
 #Contact: vlahm13@gmail.com
 #Creation Date: 1/25/17
@@ -71,8 +71,14 @@ regSearch1 <- function(topic=NULL, agency=NULL, start=NULL, end=NULL, doc_type='
     return(x)
 }
 
+#agency must be specified like: 'central-intelligence-agency'.
+#start and end (oldest and most recent publication dates) must be: 'MM/DD/YY'.
+#start and end need not be supplied together.
+#doc_type must be one of 'RULE', 'PRORULE' (proposed rule), 'NOTICE',
+#'PRESDOCU' (presidential document), or 'ALL'.
 out <- regSearch1(topic='fisheries', agency='national-oceanic-and-atmospheric-administration',
                   start='01/02/17', end='01/25/17', doc_type='ALL')
 
 #write output (would be nice to write to the directory where this script is executed)
-write.csv(out, 'fedRegOut.csv')
+setwd('set this')
+write.csv(out, 'fedRegOut.csv', row.names=FALSE)
