@@ -3,6 +3,9 @@
 #Contact: vlahm13@gmail.com
 #Creation Date: 1/22/17
 
+#it will help to collapse all folds (if using Rstudio):
+#ALT+O on Windows and Linux, CMD+OPT+O on OSX
+
 #install packages if neccesary
 if (!require("httr")) install.packages("httr")
 if (!require("jsonlite")) install.packages("jsonlite")
@@ -110,7 +113,7 @@ regEngine1 <- function(topic=NULL, agency=NULL, start=NULL, end=NULL, doc_type='
     return(out)
 }
 
-#main function for searchin federal register
+#main function for searching federal register
 regSearch1 <- function(topic=NULL, agency=NULL, start=NULL, end=NULL, doc_type='ALL'){
 
     #return the first page of results (the API can return max=1000 per page)
@@ -119,7 +122,6 @@ regSearch1 <- function(topic=NULL, agency=NULL, start=NULL, end=NULL, doc_type='
 
     #as long as 1000 results are returned, grab another page
     while(nrow(x) %% 1000 == 0){
-        print('chili')
         PAGE <- PAGE+1
         y <- regEngine1(topic=topic, agency=agency, start=start, end=end, doc_type=doc_type, PAGE)
         x <- rbind(x, y)
@@ -128,14 +130,14 @@ regSearch1 <- function(topic=NULL, agency=NULL, start=NULL, end=NULL, doc_type='
 }
 
 out <- regSearch1(topic='fisheries', agency='national-oceanic-and-atmospheric-administration',
-           start='01/02/17', end='01/25/17', doc_type='all')
+           start='01/02/17', end='01/25/17', doc_type='ALL')
 
 #first five returned titles (different from those returned by v3 API)
 out$title[1:5]
 #number of records returned
 nrow(out)
 
-#it can be slow if the search is too broad
+#it can be slow if the search is very broad:
 out2 <- regSearch1(topic='security', start='01/01/16')
 nrow(out2) #9865 records
 
