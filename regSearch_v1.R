@@ -3,7 +3,7 @@
 #Contact: vlahm13@gmail.com
 #Creation Date: 1/25/17
 
-#install packages if neccesary
+#install packages if necessary
 if (!require("httr")) install.packages("httr")
 if (!require("jsonlite")) install.packages("jsonlite")
 if (!require("stringr")) install.packages("stringr")
@@ -73,12 +73,12 @@ regSearch1 <- function(topic=NULL, agency=NULL, start=NULL, end=NULL, doc_type='
 
 #agency must be specified like: 'central-intelligence-agency'.
 #start and end (oldest and most recent publication dates) must be: 'MM/DD/YY'.
-#start and end need not be supplied together.
+#start and end do not need to be supplied together.
 #doc_type must be one of 'RULE', 'PRORULE' (proposed rule), 'NOTICE',
 #'PRESDOCU' (presidential document), or 'ALL'.
 out <- regSearch1(topic='fisheries', agency='national-oceanic-and-atmospheric-administration',
                   start='01/02/17', end='01/25/17', doc_type='ALL')
 
-#write output (would be nice to write to the directory where this script is executed)
-setwd('set this')
+#write output
+setwd('set this') #would be nice to automatically write to the containing directory
 write.csv(out, 'fedRegOut.csv', row.names=FALSE)
