@@ -13,6 +13,8 @@ library(jsonlite)
 library(stringr)
 
 #regEngine is not used directly. it's called by regSearch1
+#it is called by regSearch1 in order include user-specified search terms and order
+#in the correct URL sequence
 regEngine1 <- function(topic=NULL, agency=NULL, start=NULL, end=NULL, doc_type='ALL', PAGE){
 
     #this base url includes the API expressions for number of items per page, sort by oldest,
@@ -55,7 +57,7 @@ regEngine1 <- function(topic=NULL, agency=NULL, start=NULL, end=NULL, doc_type='
     return(out)
 }
 
-#main function for searching federal register
+#main function for searching federal register, calls for regEngine1 function above
 regSearch1 <- function(topic=NULL, agency=NULL, start=NULL, end=NULL, doc_type='ALL'){
 
     #return the first page of results (the API can return max=1000 per page)
@@ -81,4 +83,4 @@ out <- regSearch1(topic='fisheries', agency='national-oceanic-and-atmospheric-ad
 
 #write output
 setwd('set this') #would be nice to automatically write to the containing directory
-write.csv(out, 'fedRegOut.csv', row.names=FALSE)
+write.csv(out, 'fedRegOut.csv', row.names=FALSE) #write.csv() writes to w/e directory is open.. might not be necessary to include setwd() above
