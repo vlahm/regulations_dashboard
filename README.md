@@ -6,15 +6,16 @@ This repository includes tools for R programmers to interface with the Federal R
 
 R scripts contained in repo include:
 
-Tests:  
-00_exploration.R  
+Tests:
+00_exploration.R
 01_testing.R
 
-Working version:  
+Working version:
 regSearch_v1.R
 
-NOTES  
-1) API key limited to 1000 uses per day. No big now but it will be  
+NOTES
+1) API key limited to 1000 uses per day. No big now but it will be
 2) should replace rbind with rbind.list, or something similar
+3) Consider making functions into R package in future
 
 
