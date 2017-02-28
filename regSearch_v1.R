@@ -7,7 +7,9 @@
 if (!require("httr")) install.packages("httr")
 if (!require("jsonlite")) install.packages("jsonlite")
 if (!require("stringr")) install.packages("stringr")
+if (!require("plyr")) install.packages("plyr")
 
+library(plyr)
 library(httr)
 library(jsonlite)
 library(stringr)
@@ -67,10 +69,11 @@ regSearch1 <- function(topic=NULL, agency=NULL, start=NULL, end=NULL, doc_type='
     while(nrow(x) %% 1000 == 0){
         PAGE <- PAGE+1
         y <- regEngine1(topic=topic, agency=agency, start=start, end=end, doc_type=doc_type, PAGE)
-        x <- rbind(x, y)
+        x <- rbind.fill(x, y) #note now includes a different function from {plyr} that was slightly faster after benchmarking (see regSearch_benchmarking.R in repo)
     }
     return(x)
 }
+
 
 #agency must be specified like: 'central-intelligence-agency'.
 #start and end (oldest and most recent publication dates) must be: 'MM/DD/YY'.
@@ -78,7 +81,8 @@ regSearch1 <- function(topic=NULL, agency=NULL, start=NULL, end=NULL, doc_type='
 #doc_type must be one of 'RULE', 'PRORULE' (proposed rule), 'NOTICE',
 #'PRESDOCU' (presidential document), or 'ALL'.
 out <- regSearch1(topic='fisheries', agency='national-oceanic-and-atmospheric-administration',
-                  start='01/02/17', end='01/25/17', doc_type='ALL')
+                  start='01/02/16', end='02/25/17', doc_type='ALL')
+
 
 #write output
 setwd('set this') #would be nice to automatically write to the containing directory
