@@ -15,7 +15,6 @@ regSearch_v1.R
 
 NOTES
 1) API key limited to 1000 uses per day. No big now but it will be
-2) should replace rbind with rbind.list, or something similar 
 2) did some benchmarking and found rbind.fill was faster than rbind and rbind.list...
 3) Consider making functions into R package in future
 
