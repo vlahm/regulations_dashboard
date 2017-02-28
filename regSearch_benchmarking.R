@@ -2,6 +2,8 @@
 #Author: Zach Koehn
 #Contact: zkoehn@gmail.com
 #Creation Date: 2/27/2017
+# Detail: method to search for fastest way to append particularly long search queries
+
 
 #install packages if necessary
 if (!require("httr")) install.packages("httr")
@@ -14,6 +16,8 @@ library(data.table)
 library(httr)
 library(jsonlite)
 library(stringr)
+library(doMC)
+registerDoMC(cores=2)
 
 #regEngine processes user input and generates a proper API call.
 #not used directly. called by regSearch1
@@ -131,24 +135,16 @@ regSearch3 <- function(topic=NULL, agency=NULL, start=NULL, end=NULL, doc_type='
   return(x)
 }
 
-topic='fisheries'; agency='national-oceanic-and-atmospheric-administration';start='01/02/16'; end='02/25/17'; doc_type='ALL'
-PAGE <- 1
-x <- regEngine1(topic=topic, agency=agency, start=start, end=end, doc_type=doc_type, PAGE)
-while(nrow(x) %% 1000 == 0){
-  PAGE <- PAGE+1
-  y <- regEngine1(topic=topic, agency=agency, start=start, end=end, doc_type=doc_type, PAGE)
-  x <- rbindlist(list(x, y),use.names = T,fill=F)
-}
 
 
-out1.rbind <- regSearch1(topic=NULL, agency=NULL,
-                         start='01/02/16', end='02/25/17', doc_type='ALL')
-out2.rbind.fill <- regSearch2(topic=NULL, agency=NULL,
-                              start='01/02/16', end='02/25/17', doc_type='ALL')
+#test with a larger sample of ALL topics regarding agency=NOAA from 2013-today(2/24/2017)
+out1.rbind <- regSearch1(topic=NULL, agency='national-oceanic-and-atmospheric-administration',
+                         start='01/02/13', end='02/25/17', doc_type='ALL')
+out2.rbind.fill <- regSearch2(topic=NULL, agency='national-oceanic-and-atmospheric-administration',
+                              start='01/02/13', end='02/25/17', doc_type='ALL')
 
-out3.rbindlist <- regSearch3(topic=NULL, agency=NULL,
-                             start='01/02/16', end='02/25/17', doc_type='ALL')
-
+out3.rbindlist <- regSearch3(topic=NULL, agency='national-oceanic-and-atmospheric-administration',
+                             start='01/02/13', end='02/25/17', doc_type='ALL')
 
 #test to see if edited versions are faster, microbenchmarking
 library(microbenchmark)
@@ -157,9 +153,9 @@ mb.test <- microbenchmark(
   out1.rbind,
   out2.rbind.fill,
   out3.rbindlist,
-  times = 1e4
+  times = 1e5
 )
 mb.test
 autoplot(mb.test)
 
-#over a number of benchmarks, rbindlist is certainly fastest, 
+#over a number of benchmarks, rbind.fill from {plyr} is the fastest, 
