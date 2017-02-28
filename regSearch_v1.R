@@ -7,7 +7,7 @@
 if (!require("httr")) install.packages("httr")
 if (!require("jsonlite")) install.packages("jsonlite")
 if (!require("stringr")) install.packages("stringr")
-
+library(plyr)
 library(httr)
 library(jsonlite)
 library(stringr)
@@ -67,7 +67,7 @@ regSearch1 <- function(topic=NULL, agency=NULL, start=NULL, end=NULL, doc_type='
     while(nrow(x) %% 1000 == 0){
         PAGE <- PAGE+1
         y <- regEngine1(topic=topic, agency=agency, start=start, end=end, doc_type=doc_type, PAGE)
-        x <- rbind(x, y)
+        x <- rbind.fill(x, y) #slight change to speed up rbind (from regSearch_benchmarking.R)
     }
     return(x)
 }
