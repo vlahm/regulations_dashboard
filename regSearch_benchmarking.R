@@ -2,6 +2,7 @@
 #Author: Zach Koehn
 #Contact: zkoehn@gmail.com
 #Creation Date: 2/27/2017
+#Modified: 2/28/2017
 # Detail: method to search for fastest way to append particularly long search queries
 
 
