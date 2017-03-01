@@ -11,6 +11,7 @@ if (!require("httr")) install.packages("httr")
 if (!require("jsonlite")) install.packages("jsonlite")
 if (!require("stringr")) install.packages("stringr")
 if (!require("data.table")) install.packages("data.table")
+if (!require("parallel")) install.packages("parallel")
 
 library(plyr)
 library(data.table)
@@ -18,7 +19,9 @@ library(httr)
 library(jsonlite)
 library(stringr)
 library(doMC)
-registerDoMC(cores=2)
+library(parallel)
+ncores = detectCores() -1
+registerDoMC(cores=ncores)
 
 #regEngine processes user input and generates a proper API call.
 #not used directly. called by regSearch1
@@ -159,4 +162,4 @@ mb.test <- microbenchmark(
 mb.test
 autoplot(mb.test)
 
-#over a number of benchmarks, rbind.fill from {plyr} is the fastest, 
+#over a number of benchmarks, rbind.fill from {plyr} is the fastest
