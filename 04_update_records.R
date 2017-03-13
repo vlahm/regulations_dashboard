@@ -3,26 +3,28 @@
 #Author: Mike Vlah
 #Contact: vlahm13@gmail.com
 #Creation Date: 3/12/17
+rm(list=ls()); cat('\014') #clear everything
 
 #TODO: upload/edit speed comparison
-#auto authorization (?gs_auth; .httr-oauth)
 #dedicated google account
 
 #INSTRUCTIONS:
-#set the working directory, to the place where you want to store regulation data.
+#set the working directory to the place where you want to store a CSV copy of current records
 setwd('~/temp')
 #03_functions.R should go in there. 04_update_records.R can go anywhere.
-#Google Sheets cache information will also be stored there as .httr-oauth
+#Google Sheets cache information will also be stored there in a file called .httr-oauth
 #any old fedRegOut.csv files will now be obsolete, so you can delete those.
+#most recent search date will also be stored.
+deepSearch = 150 #choose search depth (days before today) for the first run
+lookBack = 7 #choose depth to check every time, to capture late additions
 #then source this file. Nothing else needs to be edited, but feel free to customize.
 
-#clear everything and start timing
-rm(list=ls()); cat('\014')
-ptm <- proc.time()
+#start timing
+ptm = proc.time()
 
 #install packages if necessary
-package_list <- c('httr','jsonlite','stringr','plyr','dplyr','googlesheets')
-new_packages <- package_list[!(package_list %in% installed.packages()[,"Package"])]
+package_list = c('httr','jsonlite','stringr','plyr','dplyr','googlesheets')
+new_packages = package_list[!(package_list %in% installed.packages()[,"Package"])]
 if(length(new_packages)) install.packages(new_packages)
 
 #load all packages
@@ -43,11 +45,11 @@ if(file.exists('fedRegOut.csv')){
 todayRaw = Sys.Date()
 today = format.Date(todayRaw, format='%m/%d/%y', tz='PST')
 
-#if no records found or last run unknown, assign 150 days before today as the last run date.
+#if no records found or last run unknown, assign deepSearch days before today as the last run date.
 #this should ensure that no open comment periods are omitted
 noPrevRun = !(file.exists('dash_lastRun.txt'))
 if(noPrevRun | noRecords){
-    startDate = format.Date(todayRaw-150, format='%m/%d/%y', tz='PST')
+    startDate = format.Date(todayRaw-deepSearch, format='%m/%d/%y', tz='PST')
     file.create('dash_lastRun.txt')
     conn = file('dash_lastRun.txt')
     writeLines(startDate, conn)
@@ -59,11 +61,11 @@ if(noPrevRun | noRecords){
     }
 }
 
-#otherwise, load the last run date and decrement by a week to grab potential late entries
+#otherwise, load the last run date and decrement by lookBack to grab potential late entries
 conn = file('dash_lastRun.txt')
 lastRun = readLines(conn) #read it
 if(!noPrevRun & !noRecords){
-    startDate = as.Date(lastRun, format='%m/%d/%y', tz='PST')-7 #subtract a week
+    startDate = as.Date(lastRun, format='%m/%d/%y', tz='PST')-lookBack #subtract a week
     startDate = format.Date(startDate, format='%m/%d/%y') #reformat
 }
 writeLines(today, conn) #overwrite file with today's date
@@ -81,7 +83,7 @@ newRegs = NULL
 for(i in nchunks:1){
     chunkStart = format.Date(todayRaw-(i*30), format='%m/%d/%y', tz='PST')
     chunkEnd = format.Date(todayRaw-((i-1)*30), format='%m/%d/%y', tz='PST')
-    newRegs <- rbind.fill(newRegs, regSearch1(start=chunkStart, end=chunkEnd))
+    newRegs = rbind.fill(newRegs, regSearch1(start=chunkStart, end=chunkEnd))
 }
 
 #combine records
