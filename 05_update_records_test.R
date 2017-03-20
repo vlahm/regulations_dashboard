@@ -7,7 +7,8 @@ rm(list=ls()); cat('\014') #clear everything
 
 #INSTRUCTIONS:
 #set the working directory to the place where you want to store a CSV copy of current records
-    setwd('C:/Users/Mike/Desktop/fr_test')
+    # setwd('C:/Users/Mike/Desktop/fr_test')
+    setwd('~/temp')
     #03_functions.R should go in there. 04_update_records.R can go anywhere.
     #Google Sheets cache information will also be stored there in a file called .httr-oauth
     #any old fedRegOut.csv files will now be obsolete, so you can delete those.
@@ -15,7 +16,7 @@ rm(list=ls()); cat('\014') #clear everything
 #choose search depth (days before today) for the first run
     deepSearch = 150
 #choose depth to check every time, to capture late additions
-    lookBack = 7 
+    lookBack = 7
 #then source this file. Nothing else needs to be edited, but feel free to customize.
 
 #TROUBLESHOOTING ON WINDOWS
@@ -42,8 +43,8 @@ source('03_functions.R')
 #read in stored records if possible
 oldRegs = NULL #this will remain NULL if old records not found
 if(file.exists('fedRegOut.csv')){
-    oldRegs = read.csv('fedRegOut.csv')
-    message('Old records loaded')
+    oldRegs = read.csv('fedRegOut.csv', stringsAsFactors=FALSE)
+    message('Old records loaded.')
     noRecords = FALSE
 } else noRecords = TRUE
 
@@ -99,16 +100,19 @@ if(nchunks > 1){
 #combine records
 allRegs = rbind.fill(oldRegs, newRegs)
 
-#remove duplicates, unusable records, and those closed for comment
+#remove duplicates, records closed for comment, and records missing comment close date that were published > 89 days ago
 dups = duplicated(paste(allRegs$title, allRegs$comment_url))
-allRegs = filter(allRegs, comments_close_on != '', !dups,
-                 as.Date(comments_close_on,format='%m/%d/%Y',tz='PST') > todayRaw)
+allRegs = allRegs %>%
+    filter(!dups,
+           as.Date(comments_close_on,format='%m/%d/%Y',tz='PST') >= todayRaw |
+           (comments_close_on == '' &
+           as.Date(publication_date,format='%m/%d/%Y',tz='PST') >= (todayRaw-89))) #%>%
+    # arrange(as.Date(publication_date,format='%m/%d/%Y',tz='PST'))
 
 #write all records to local file
-write.csv(allRegs, 'fedRegOut.csv', row.names=FALSE)
+write.csv(allRegs[-(1:50),], 'fedRegOut.csv', row.names=FALSE)
 
-#update google sheet. docs recommend delete-rewrite as the fastest method,
-#but it's worth testing gs_edit_cells() and gs_add_row().
+#update google sheet. docs recommend delete-rewrite as the fastest method ###obsolete. need it to remain the same sheet
 # message('Updating Google Sheets. Authorize in browser if this is first run.')
 # if('fedRegDash' %in% gs_ls()$sheet_title){
 #     dash = gs_title('fedRegDash')
@@ -122,12 +126,29 @@ if(!'regDash' %in% gs_ls()$sheet_title){
     # dash = gs_new('fedRegDash', input=allRegs, trim=TRUE, verbose=FALSE)
 }
 
-#update google sheet with new records
+#find range of records that are now obsolete and write them to a file
+# todayRaw = todayRaw+1
+if(!noPrevRun & !noRecords){
+    message('Deleting obsolete records.')
+    obsoleteRows = which(!(as.Date(oldRegs$comments_close_on,format='%m/%d/%Y',tz='PST') >= todayRaw |
+                        (oldRegs$comments_close_on == '' &
+                        as.Date(oldRegs$publication_date,format='%m/%d/%Y',tz='PST') >= (todayRaw-89))))
+    write.csv(obsoleteRows, 'obsoleteRows.csv', row.names=FALSE)
+}
+
+#source python script to remove obsolete rows
+    #this is ready to go. just have to hook it up
+
+#update google sheet with new records (can't use gs_edit_cells because the sheet is too big)
 dash = gs_title('regDash')
-gs_edit_cells(dash, input=allRegs, trim=TRUE)
-dash = gs_ws_rename(dash, from='regDash', to='temp')
-dash = gs_ws_new(dash, ws_title='regDash', input=allRegs, trim=TRUE, verbose=FALSE)
-dash = gs_ws_delete(dash, ws='temp')
+# gs_delete(dash)
+# gs_edit_cells(dash, input=allRegs, trim=TRUE)
+# dash = gs_ws_rename(dash, from='regDash', to='temp')
+# dash = gs_ws_new(dash, ws_title='regDash', input=allRegs, trim=TRUE, verbose=FALSE)
+# dash = gs_ws_delete(dash, ws='temp')
+# gsheet = gs_download(dash)
+gs_ls()$sheet_key[1]
+
 
 
 runTime = proc.time() - ptm
