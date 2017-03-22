@@ -19,7 +19,7 @@ except ImportError:
 # at ~/.credentials/sheets.googleapis.com-python-quickstart.json
 SCOPES = 'https://www.googleapis.com/auth/spreadsheets'
 CLIENT_SECRET_FILE = 'client_secret.json'
-APPLICATION_NAME = 'Google Sheets API Python Quickstart'
+APPLICATION_NAME = 'regDash'
 
 
 def get_credentials():
@@ -58,8 +58,7 @@ def main():
     service = discovery.build('sheets', 'v4', http=http,
                               discoveryServiceUrl=discoveryUrl)
 
-    spreadsheetId = '1zovO48nWH2GbjzNbCwF-vEIKlzr0z5E421G90TFUWSU'
-    #spreadsheetId = '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'
+    spreadsheetId ='1GChaB7izDB5U0A9sv2eUuVnn_w_64co9Sr4Lk8fIkjA'
 
     #to get information about the sheet:
     #request = service.spreadsheets().get(spreadsheetId=spreadsheetId)#, ranges=ranges, includeGridData=include_grid_data)
@@ -67,7 +66,7 @@ def main():
     #pprint(response)
 
     #read in rows to delete
-    obsRows = pd.read_csv('obsoleteRows.csv').values.T[0]
+    obsRows = pd.read_csv('obsoleteRows.csv', header=None).values.T[0]
 
     # delete rows
     count = list(range(len(obsRows)))
@@ -77,7 +76,7 @@ def main():
         requests.append({
             'deleteDimension': {
                 'range': {
-                    "sheetId": 681782587,
+                    "sheetId": 1063264035,
                     "dimension": "ROWS",
                     "startIndex": x-1-count[i],
                     "endIndex": x-count[i]
@@ -89,22 +88,9 @@ def main():
         'requests': requests
     }
 
+    #make request
     response = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheetId,
                                                   body=body).execute()
-
-    #rangeName = 'Class Data!A2:E'
-    #result = service.spreadsheets().values().get(
-    #    spreadsheetId=spreadsheetId, range=rangeName).execute()
-    #values = result.get('values', [])
-
-    #if not values:
-    #    print('No data found.')
-    #else:
-    #    print('Name, Major:')
-    #    for row in values:
-    #        # Print columns A and E, which correspond to indices 0 and 4.
-    #        print('%s, %s' % (row[0], row[4]))
-
 
 if __name__ == '__main__':
     main()

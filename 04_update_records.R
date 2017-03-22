@@ -5,25 +5,32 @@
 #Creation Date: 3/12/17
 rm(list=ls()); cat('\014') #clear everything
 
-#TODO: upload/edit speed comparison
-#dedicated google account
-
 #INSTRUCTIONS:
 #set the working directory to the place where you want to store a CSV copy of current records
-setwd('C:/Users/Mike/Desktop/fr_test')
-#03_functions.R should go in there. 04_update_records.R can go anywhere.
-#Google Sheets cache information will also be stored there in a file called .httr-oauth
-#any old fedRegOut.csv files will now be obsolete, so you can delete those.
-#most recent search date will also be stored.
-deepSearch = 150 #choose search depth (days before today) for the first run
-lookBack = 7 #choose depth to check every time, to capture late additions
+    # setwd('C:/Users/Mike/Desktop/fr_test')
+    setwd('~/git/regulations_dashboard')
+    #03_functions.R should go in there. 04_update_records.R can go anywhere.
+    #Google Sheets cache information will also be stored there in a file called .httr-oauth
+    #any old fedRegOut.csv files will now be obsolete, so you can delete those.
+    #most recent search date will also be stored.
+#choose search depth (days before today) for the first run
+    deepSearch = 150
+#choose depth to check every time, to capture late additions
+    lookBack = 7
 #then source this file. Nothing else needs to be edited, but feel free to customize.
 
+#TROUBLESHOOTING ON WINDOWS
+#if you get curl error: "Operation was aborted by an application callback", update devtools with:
+    #remove.packages('devtools'); install.packages('devtools')
+#if you get curl error: "Stream error in the HTTP/2 framing layer", update curl with:
+    #install.packages("https://github.com/jeroen/curl/archive/master.tar.gz", repos = NULL)
+    #(you'll need to have Rtools installed)
+
 #start timing
-ptm = proc.time()
+# ptm = proc.time()
 
 #install packages if necessary
-package_list = c('httr','jsonlite','stringr','plyr','dplyr','googlesheets')
+package_list = c('httr','jsonlite','stringr','plyr','dplyr','googlesheets')#,'rPython')
 new_packages = package_list[!(package_list %in% installed.packages()[,"Package"])]
 if(length(new_packages)) install.packages(new_packages)
 
@@ -36,8 +43,8 @@ source('03_functions.R')
 #read in stored records if possible
 oldRegs = NULL #this will remain NULL if old records not found
 if(file.exists('fedRegOut.csv')){
-    oldRegs = read.csv('fedRegOut.csv')
-    message('Old records loaded')
+    oldRegs = read.csv('fedRegOut.csv', stringsAsFactors=FALSE)
+    message('Old records loaded.')
     noRecords = FALSE
 } else noRecords = TRUE
 
@@ -77,47 +84,70 @@ if(noPrevRun | noRecords){
 } else {
     message(paste0('Last run date: ',lastRun,'. (Re)retrieving records published after ',startDate,'.'))
 }
-span = todayRaw - as.Date(startDate, format='%m/%d/%y', tz='PST')
-nchunks = ceiling(as.numeric(span)/30)
+span = as.numeric(todayRaw - as.Date(startDate, format='%m/%d/%y', tz='PST'))
+nchunks = ceiling(span/30)
 newRegs = NULL
-for(i in nchunks:1){
-    chunkStart = format.Date(todayRaw-(i*30), format='%m/%d/%y', tz='PST')
-    chunkEnd = format.Date(todayRaw-((i-1)*30), format='%m/%d/%y', tz='PST')
-    newRegs = rbind.fill(newRegs, regSearch1(start=chunkStart, end=chunkEnd))
+if(nchunks > 1){
+    for(i in nchunks:1){
+        chunkStart = format.Date(todayRaw-(i*30), format='%m/%d/%y', tz='PST') #NOTICE: ends up grabbing more than deepSearch records
+        chunkEnd = format.Date(todayRaw-((i-1)*30), format='%m/%d/%y', tz='PST')
+        newRegs = rbind.fill(newRegs, regSearch1(start=chunkStart, end=chunkEnd))
+    }
+} else {
+    newRegs = rbind.fill(newRegs, regSearch1(start=startDate, end=today))
 }
 
 #combine records
 allRegs = rbind.fill(oldRegs, newRegs)
 
-#remove duplicates, unusable records, and those closed for comment
+#remove duplicates, records closed for comment, and records missing comment close date that were published > 89 days ago
 dups = duplicated(paste(allRegs$title, allRegs$comment_url))
-allRegs = filter(allRegs, comments_close_on != '', comment_url != '', !dups,
-                 as.Date(comments_close_on,format='%m/%d/%y',tz='PST') > todayRaw)
+allRegs = allRegs %>%
+    filter(!dups,
+           as.Date(comments_close_on,format='%m/%d/%Y',tz='PST') >= todayRaw |
+           (comments_close_on == '' &
+           as.Date(publication_date,format='%m/%d/%Y',tz='PST') >= (todayRaw-89))) #%>%
+    # arrange(as.Date(publication_date,format='%m/%d/%Y',tz='PST'))
 
 #write all records to local file
 write.csv(allRegs, 'fedRegOut.csv', row.names=FALSE)
 
-
-
-#update google sheet. docs recommend delete-rewrite as the fastest method,
-#but it's worth testing gs_edit_cells() and gs_add_row().
+#update google sheet. docs recommend delete-rewrite as the fastest method ###obsolete. need it to remain the same sheet
 # message('Updating Google Sheets. Authorize in browser if this is first run.')
 # if('fedRegDash' %in% gs_ls()$sheet_title){
 #     dash = gs_title('fedRegDash')
 #     gs_delete(dash)
 # }
-# gs_upload('fedRegOut.csv', sheet_title='fedRegDash')
 
-#create new google sheet if this is first run
-if(!'fedRegDash' %in% gs_ls()$sheet_title){
-    message('Creating new Google Sheet; populating with all records')
-    sht = gs_new('fedRegDash', input=allRegs, trim=TRUE, verbose=FALSE)
+#create google sheet if this is first run
+if(!'regDash' %in% gs_ls()$sheet_title){
+    message('Creating new Google Sheet. Populating with all records.')
+    gs_upload('fedRegOut.csv', sheet_title='regDash')
+    # dash = gs_new('fedRegDash', input=allRegs, trim=TRUE, verbose=FALSE)
 }
 
-#remove old records from google sheet and add new records
-gs_edit_cells(sht, 
+#find range of records that are now obsolete and write their row indices to a file
+todayRaw = todayRaw+1
+if(!noPrevRun & !noRecords){
+    message('Deleting obsolete records.')
+    obsoleteRows = which(!(as.Date(oldRegs$comments_close_on,format='%m/%d/%Y',tz='PST') >= todayRaw |
+                        (oldRegs$comments_close_on == '' &
+                        as.Date(oldRegs$publication_date,format='%m/%d/%Y',tz='PST') >= (todayRaw-89))))
+    write.table(obsoleteRows, 'obsoleteRows.csv', row.names=FALSE, col.names=FALSE)
+}
 
+#get indices of new rows and write them to a separate file
+newRows = which(!paste(allRegs$title, allRegs$comment_url) %in% paste(oldRegs$title, oldRegs$comment_url))
+if(length(newRows) && length(newRows) != nrow(allRegs)){
+    write.table(newRows, 'newRows.csv', row.names=FALSE, col.names=FALSE)
+}
 
-runTime = proc.time() - ptm
-message(paste('Run completed in',round(runTime[3]/60,2),'minutes.'))
+message(writeLines(paste0('If this is not the first run-through, ',
+                         'source 05_delete_rows.py next.\nThen source 06_add_rows.R.')))
 
+#would be great to call Python from R, but so far no luck
+#here's how to make it work on windows, apparently: https://github.com/cjgb/rPython-win
+# python.load('06_delete_rows.py')
+
+# runTime = proc.time() - ptm
+# message(paste('Run completed in',round(runTime[3]/60,2),'minutes.'))
