@@ -58,7 +58,7 @@ def main():
     service = discovery.build('sheets', 'v4', http=http,
                               discoveryServiceUrl=discoveryUrl)
 
-    spreadsheetId ='1GChaB7izDB5U0A9sv2eUuVnn_w_64co9Sr4Lk8fIkjA'
+    spreadsheetId ='1YdLB2aG-FDEESytVGfHapTixMNcdVi2BZ6pf-IOO1UQ'
 
     #to get information about the sheet:
     #request = service.spreadsheets().get(spreadsheetId=spreadsheetId)#, ranges=ranges, includeGridData=include_grid_data)
@@ -69,6 +69,8 @@ def main():
     obsRows = pd.read_csv('obsoleteRows.csv', header=None).values.T[0]
 
     # delete rows
+    print('Removing' len(obsRows) 'outdated records from Google Sheet.')
+
     count = list(range(len(obsRows)))
     requests = []
     for i in count:
@@ -76,10 +78,10 @@ def main():
         requests.append({
             'deleteDimension': {
                 'range': {
-                    "sheetId": 1063264035,
+                    "sheetId": 1793980318,
                     "dimension": "ROWS",
-                    "startIndex": x-1-count[i],
-                    "endIndex": x-count[i]
+                    "startIndex": x-count[i],
+                    "endIndex": x-count[i]+1 #header is row 1 on Sheets
                 }
             }
         })

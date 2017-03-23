@@ -127,9 +127,9 @@ if(!'regDash' %in% gs_ls()$sheet_title){
 }
 
 #find range of records that are now obsolete and write their row indices to a file
-todayRaw = todayRaw+1
+# todayRaw = todayRaw+1 #for testing
 if(!noPrevRun & !noRecords){
-    message('Deleting obsolete records.')
+    message('Identifying obsolete records.')
     obsoleteRows = which(!(as.Date(oldRegs$comments_close_on,format='%m/%d/%Y',tz='PST') >= todayRaw |
                         (oldRegs$comments_close_on == '' &
                         as.Date(oldRegs$publication_date,format='%m/%d/%Y',tz='PST') >= (todayRaw-89))))
@@ -139,6 +139,7 @@ if(!noPrevRun & !noRecords){
 #get indices of new rows and write them to a separate file
 newRows = which(!paste(allRegs$title, allRegs$comment_url) %in% paste(oldRegs$title, oldRegs$comment_url))
 if(length(newRows) && length(newRows) != nrow(allRegs)){
+    message('Identifying new records.')
     write.table(newRows, 'newRows.csv', row.names=FALSE, col.names=FALSE)
 }
 

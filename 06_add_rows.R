@@ -14,13 +14,15 @@ newRows = as.vector(as.matrix(read.csv('newRows.csv', header=FALSE)))
 continuous = all(rle(newRows)$lengths == 1)
 at_end = newRows[length(newRows)] == nrow(allRegs)
 
-#update google sheet with new records (can't use gs_edit_cells because the sheet is too big)
+#append new rows to the goog sheet
 if(continuous & at_end){
+    message(writeLines(paste0('Appending ', length(newRows), ' new records to Google Sheet.\n',
+                              'This will take about ', round(length(newRows)*2.5/60, 1), ' minutes.')))
     dash = gs_title('regDash')
-    gs_add_row(dash, input=allRegs[newRows,])
+    gs_add_row(dash, input=allRegs[newRows,], verbose=FALSE)
 
     #delete relay file 2
     file.remove('newRows.csv')
 } else {
-    message('Critical error: non-continuity in rows to append. Call Mike!')
+    message('Critical error: discontinuity in rows to append. Call Mike!')
 }
