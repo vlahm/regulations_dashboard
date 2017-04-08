@@ -24,5 +24,12 @@ if(continuous & at_end){
     #delete relay file 2
     file.remove('newRows.csv')
 } else {
-    message('Critical error: discontinuity in rows to append. Call Mike!')
+    message('Discontinuity in rows to append. Call Mike!')
+}
+
+#verify that the new stored records are identical to the updated google sheet
+dash = gs_title('regDash')
+newSheet = gs_read(dash)
+if(!identical(newSheet, allRegs)){
+    message('Google Sheet disagrees with local CSV. Call Mike!')
 }
