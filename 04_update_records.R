@@ -42,8 +42,14 @@ source('03_functions.R')
 
 #read in stored records if possible
 oldRegs = NULL #this will remain NULL if old records not found
-if(file.exists('fedRegOut.csv')){
-    oldRegs = read.csv('fedRegOut.csv', stringsAsFactors=FALSE)
+# if(file.exists('fedRegOut.csv')){
+#     oldRegs = read.csv('fedRegOut.csv', stringsAsFactors=FALSE)
+#     message('Old records loaded.')
+#     noRecords = FALSE
+# } else noRecords = TRUE
+if('regDash' %in% gs_ls()$sheet_title){
+    dash = gs_title('regDash')
+    oldRegs = gs_read(dash)
     message('Old records loaded.')
     noRecords = FALSE
 } else noRecords = TRUE
@@ -78,7 +84,21 @@ if(!noPrevRun & !noRecords){
 writeLines(today, conn) #overwrite file with today's date
 close(conn)
 
-#get new records
+#find range of records that are now obsolete and write their row indices to a file
+# todayRaw = todayRaw+1 #for testing
+if(!noPrevRun & !noRecords){
+    message('Identifying obsolete records.')
+    obsoleteRows = which(as.Date(oldRegs$comments_close_on,format='%m/%d/%Y',tz='PST') < todayRaw |
+                               (is.na(oldRegs$comments_close_on) &
+                                    as.Date(oldRegs$publication_date,format='%m/%d/%Y',tz='PST') < (todayRaw-89)))
+    oldkey = paste(oldRegs$title, oldRegs$comment_url, oldRegs$pdf_url)
+    obsoleteRows = append(obsoleteRows, which(duplicated(oldkey))) #just in case dupes end up in the system
+    write.table(obsoleteRows, 'obsoleteRows.csv', row.names=FALSE, col.names=FALSE)
+}
+
+# as.Date(oldRegs$comments_close_on,format='%m/%d/%Y',tz='PST')[as.Date(oldRegs$publication_date,format='%m/%d/%Y',tz='PST') %in% chili]
+
+#get new records (some will be duplicates)
 if(noPrevRun | noRecords){
     message(paste('Retrieving records. This may take a few minutes'))
 } else {
@@ -97,22 +117,22 @@ if(nchunks > 1){
     newRegs = rbind.fill(newRegs, regSearch1(start=startDate, end=today))
 }
 
-#combine records
-allRegs = rbind.fill(oldRegs, newRegs)
-
 #remove duplicates, records closed for comment, and records missing comment close date that were published > 89 days ago
-dups = duplicated(paste(allRegs$title, allRegs$comment_url))
-allRegs = allRegs %>%
-    filter(!dups,
-           as.Date(comments_close_on,format='%m/%d/%Y',tz='PST') >= todayRaw |
-           (comments_close_on == '' &
-           as.Date(publication_date,format='%m/%d/%Y',tz='PST') >= (todayRaw-89))) #%>%
+newkey = paste(newRegs$title, newRegs$comment_url, newRegs$pdf_url)
+if(!noPrevRun & !noRecords) newRegs = newRegs[!newkey %in% oldkey,]
+newRegs = newRegs %>%
+    filter(as.Date(comments_close_on,format='%m/%d/%Y',tz='PST') >= todayRaw |
+               (comments_close_on == '' &
+                    as.Date(publication_date,format='%m/%d/%Y',tz='PST') >= (todayRaw-89)))
     # arrange(as.Date(publication_date,format='%m/%d/%Y',tz='PST'))
 
-#write all records to local file
-write.csv(allRegs, 'fedRegOut.csv', row.names=FALSE)
 
-#update google sheet. docs recommend delete-rewrite as the fastest method ###obsolete. need it to remain the same sheet
+#combine records
+
+
+
+#update google sheet. docs recommend delete-rewrite as the fastest method
+#deprecated: need sheet ID to remain the same
 # message('Updating Google Sheets. Authorize in browser if this is first run.')
 # if('fedRegDash' %in% gs_ls()$sheet_title){
 #     dash = gs_title('fedRegDash')
@@ -122,26 +142,25 @@ write.csv(allRegs, 'fedRegOut.csv', row.names=FALSE)
 #create google sheet if this is first run
 if(!'regDash' %in% gs_ls()$sheet_title){
     message('Creating new Google Sheet. Populating with all records.')
+    allRegs = rbind.fill(oldRegs, newRegs)
+    write.csv(allRegs, 'fedRegOut.csv', row.names=FALSE)
     gs_upload('fedRegOut.csv', sheet_title='regDash')
     # dash = gs_new('fedRegDash', input=allRegs, trim=TRUE, verbose=FALSE)
 }
 
-#find range of records that are now obsolete and write their row indices to a file
-# todayRaw = todayRaw+1 #for testing
-if(!noPrevRun & !noRecords){
-    message('Identifying obsolete records.')
-    obsoleteRows = which(!(as.Date(oldRegs$comments_close_on,format='%m/%d/%Y',tz='PST') >= todayRaw |
-                        (oldRegs$comments_close_on == '' &
-                        as.Date(oldRegs$publication_date,format='%m/%d/%Y',tz='PST') >= (todayRaw-89))))
-    write.table(obsoleteRows, 'obsoleteRows.csv', row.names=FALSE, col.names=FALSE)
-}
 
-#get indices of new rows and write them to a separate file
-newRows = which(!paste(allRegs$title, allRegs$comment_url) %in% paste(oldRegs$title, oldRegs$comment_url))
-if(length(newRows) && length(newRows) != nrow(allRegs)){
-    message('Identifying new records.')
-    write.table(newRows, 'newRows.csv', row.names=FALSE, col.names=FALSE)
-}
+
+#obsrows
+
+# write new regs to a file
+write.csv(newRegs, 'newRegs.csv', row.names=FALSE)
+
+#get indices of new rows and write them to another file
+# newRows = which(!paste(allRegs$title, allRegs$comment_url) %in% paste(oldRegs$title, oldRegs$comment_url))
+# if(length(newRows) && length(newRows) != nrow(allRegs)){
+#     message('Identifying new records.')
+#     write.table(newRows, 'newRows.csv', row.names=FALSE, col.names=FALSE)
+# }
 
 message(writeLines(paste0('If this is not the first run-through, ',
                          'source 05_delete_rows.py next.\nThen source 06_add_rows.R.')))

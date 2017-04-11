@@ -9,6 +9,7 @@ from future import standard_library
 standard_library.install_aliases()
 import httplib2
 import os
+import sys
 from pprint import *
 import pandas as pd
 
@@ -72,6 +73,11 @@ def main():
     #request = service.spreadsheets().get(spreadsheetId=spreadsheetId)#, ranges=ranges, includeGridData=include_grid_data)
     #response = request.execute()
     #pprint(response)
+
+    #exit if no rows to delete
+    if os.stat('obsoleteRows.csv').st_size == 0:
+        print('No rows to delete. Taking no action.')
+        sys.exit()
 
     #read in rows to delete
     obsRows = pd.read_csv('obsoleteRows.csv', header=None).values.T[0]
