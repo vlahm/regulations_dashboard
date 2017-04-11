@@ -5,21 +5,12 @@ library(googlesheets)
 file.remove('obsoleteRows.csv')
 
 #read all current records back in, as well as vector of rows to append
-# allRegs = read.csv('fedRegOut.csv', stringsAsFactors=FALSE)
 newRegs = read.csv('newRegs.csv', stringsAsFactors=FALSE)
-# newRows = as.vector(as.matrix(read.csv('newRows.csv', header=FALSE)))
-
-#if there are ever gaps in the order of the new row indices, we'll have to make modifications
-#this means we can't just append rows to the google sheet. instead we'll have to insert the new rows
-#by index.
-# continuous = all(rle(newRows)$lengths == 1)
-# at_end = newRows[length(newRows)] == nrow(allRegs)
 
 #load google sheet
 dash = gs_title('regDash')
 
 #append new rows to the goog sheet
-# if(continuous & at_end){
 nRegs = nrow(newRegs)
 message(writeLines(paste0('Appending ', nRegs, ' new records to Google Sheet.\n',
                           'This will take about ', round(nRegs*2.5/60, 1), ' minutes.')))
@@ -38,11 +29,6 @@ for(i in 1:nchunks){
 
 #delete relay file 2
 file.remove('newRegs.csv')
-# } else {
-#     message(writeLines(paste0('Discontinuity in rows to append.\n',
-#                              'Try rerunning 04_, 05_, and 06_ scripts.\n',
-#                              'If you get this message again, call Mike.')))
-# }
 
 #verify that the new stored records are identical to the updated google sheet
 # updated = gs_read(dash)

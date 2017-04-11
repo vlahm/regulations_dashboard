@@ -40,13 +40,8 @@ for(i in c(package_list)) library(i, character.only=TRUE)
 #load helper functions
 source('03_functions.R')
 
-#read in stored records if possible
+#read in old records if possible
 oldRegs = NULL #this will remain NULL if old records not found
-# if(file.exists('fedRegOut.csv')){
-#     oldRegs = read.csv('fedRegOut.csv', stringsAsFactors=FALSE)
-#     message('Old records loaded.')
-#     noRecords = FALSE
-# } else noRecords = TRUE
 if('regDash' %in% gs_ls()$sheet_title){
     dash = gs_title('regDash')
     oldRegs = gs_read(dash)
@@ -96,6 +91,7 @@ if(!noPrevRun & !noRecords){
     write.table(obsoleteRows, 'obsoleteRows.csv', row.names=FALSE, col.names=FALSE)
 }
 
+# chili = head(as.Date(oldRegs$publication_date,format='%m/%d/%Y',tz='PST'), 10)
 # as.Date(oldRegs$comments_close_on,format='%m/%d/%Y',tz='PST')[as.Date(oldRegs$publication_date,format='%m/%d/%Y',tz='PST') %in% chili]
 
 #get new records (some will be duplicates)
@@ -119,17 +115,13 @@ if(nchunks > 1){
 
 #remove duplicates, records closed for comment, and records missing comment close date that were published > 89 days ago
 newkey = paste(newRegs$title, newRegs$comment_url, newRegs$pdf_url)
-if(!noPrevRun & !noRecords) newRegs = newRegs[!newkey %in% oldkey,]
+if(!noPrevRun & !noRecords){
+    newRegs = newRegs[!newkey %in% oldkey,]
+}
 newRegs = newRegs %>%
     filter(as.Date(comments_close_on,format='%m/%d/%Y',tz='PST') >= todayRaw |
-               (comments_close_on == '' &
+               (is.na(comments_close_on) &
                     as.Date(publication_date,format='%m/%d/%Y',tz='PST') >= (todayRaw-89)))
-    # arrange(as.Date(publication_date,format='%m/%d/%Y',tz='PST'))
-
-
-#combine records
-
-
 
 #update google sheet. docs recommend delete-rewrite as the fastest method
 #deprecated: need sheet ID to remain the same
@@ -148,19 +140,8 @@ if(!'regDash' %in% gs_ls()$sheet_title){
     # dash = gs_new('fedRegDash', input=allRegs, trim=TRUE, verbose=FALSE)
 }
 
-
-
-#obsrows
-
 # write new regs to a file
 write.csv(newRegs, 'newRegs.csv', row.names=FALSE)
-
-#get indices of new rows and write them to another file
-# newRows = which(!paste(allRegs$title, allRegs$comment_url) %in% paste(oldRegs$title, oldRegs$comment_url))
-# if(length(newRows) && length(newRows) != nrow(allRegs)){
-#     message('Identifying new records.')
-#     write.table(newRows, 'newRows.csv', row.names=FALSE, col.names=FALSE)
-# }
 
 message(writeLines(paste0('If this is not the first run-through, ',
                          'source 05_delete_rows.py next.\nThen source 06_add_rows.R.')))
