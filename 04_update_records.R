@@ -7,8 +7,8 @@ rm(list=ls()); cat('\014') #clear everything
 
 #INSTRUCTIONS:
 #set the working directory to the place where you want to store a CSV copy of current records
-    # setwd('C:/Users/Mike/Desktop/fr_test')
-    setwd('~/git/regulations_dashboard')
+    setwd('C:/Users/Mike/git/regulations_dashboard')
+    # setwd('~/git/regulations_dashboard')
     #03_functions.R should go in there. 04_update_records.R can go anywhere.
     #Google Sheets cache information will also be stored there in a file called .httr-oauth
     #any old fedRegOut.csv files will now be obsolete, so you can delete those.
@@ -45,6 +45,7 @@ oldRegs = NULL #this will remain NULL if old records not found
 if('regDash' %in% gs_ls()$sheet_title){
     dash = gs_title('regDash')
     oldRegs = gs_read(dash)
+    oldRegs[is.na(oldRegs)] = ''
     message('Old records loaded.')
     noRecords = FALSE
 } else noRecords = TRUE
@@ -84,7 +85,7 @@ close(conn)
 if(!noPrevRun & !noRecords){
     message('Identifying obsolete records.')
     obsoleteRows = which(as.Date(oldRegs$comments_close_on,format='%m/%d/%Y',tz='PST') < todayRaw |
-                               (is.na(oldRegs$comments_close_on) &
+                               (oldRegs$comments_close_on == '' &
                                     as.Date(oldRegs$publication_date,format='%m/%d/%Y',tz='PST') < (todayRaw-89)))
     oldkey = paste(oldRegs$title, oldRegs$comment_url, oldRegs$pdf_url)
     obsoleteRows = append(obsoleteRows, which(duplicated(oldkey))) #just in case dupes end up in the system
@@ -120,7 +121,7 @@ if(!noPrevRun & !noRecords){
 }
 newRegs = newRegs %>%
     filter(as.Date(comments_close_on,format='%m/%d/%Y',tz='PST') >= todayRaw |
-               (is.na(comments_close_on) &
+               (comments_close_on == '' &
                     as.Date(publication_date,format='%m/%d/%Y',tz='PST') >= (todayRaw-89)))
 
 #update google sheet. docs recommend delete-rewrite as the fastest method
