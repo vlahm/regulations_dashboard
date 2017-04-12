@@ -1,7 +1,0 @@
-Mary will need to get python set up with these instructions:
-    https://developers.google.com/sheets/api/quickstart/python
-
-then she'll have to update the worksheet/spreadsheet names unless
-i get access to the dedicated google account and preset them
-
-then she may have to delete ~/.credentials/sheets.googleapis.com-python-quickstart.json, or the windows equivalent

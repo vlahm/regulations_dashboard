@@ -92,9 +92,6 @@ if(!noPrevRun & !noRecords){
     write.table(obsoleteRows, 'obsoleteRows.csv', row.names=FALSE, col.names=FALSE)
 }
 
-# chili = head(as.Date(oldRegs$publication_date,format='%m/%d/%Y',tz='PST'), 10)
-# as.Date(oldRegs$comments_close_on,format='%m/%d/%Y',tz='PST')[as.Date(oldRegs$publication_date,format='%m/%d/%Y',tz='PST') %in% chili]
-
 #get new records (some will be duplicates)
 if(noPrevRun | noRecords){
     message(paste('Retrieving records. This may take a few minutes'))
