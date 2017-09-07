@@ -40,6 +40,10 @@ for(i in c(package_list)) library(i, character.only=TRUE)
 #load helper functions
 source('03_functions.R')
 
+# token = gs_auth()
+# saveRDS(token, 'gs_token.rds')
+# gs_auth(token=readRDS('gs_token.rds'))
+
 #read in old records if possible
 oldRegs = NULL #this will remain NULL if old records not found
 if('regDash' %in% gs_ls()$sheet_title){
