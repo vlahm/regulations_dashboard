@@ -1,1 +1,3 @@
 *.Rhistory
+client_secret.json
+.httr-oauth
