@@ -8,7 +8,7 @@ rm(list=ls()); cat('\014') #clear everything
 #INSTRUCTIONS:
 #set the working directory to the place where you want to store a CSV copy of current records
     # setwd('C:/Users/Mike/git/regulations_dashboard')
-    setwd('~/git/regulations_dashboard')
+    setwd('~/git/public_comment_project/regulations_dashboard')
     #03_functions.R should go in there. 04_update_records.R can go anywhere.
     #Google Sheets cache information will also be stored there in a file called .httr-oauth
     #any old fedRegOut.csv files will now be obsolete, so you can delete those.
