@@ -40,15 +40,21 @@ for(i in c(package_list)) library(i, character.only=TRUE)
 #load helper functions
 source('03_functions.R')
 
+#authorize tidyverse to communicate with google sheets
+# googlesheets4::gs4_auth(path = 'regdash-cc3be28576b9.json')
+
 # token = gs_auth()
 # saveRDS(token, 'gs_token.rds')
 # gs_auth(token=readRDS('gs_token.rds'))
 
 #read in old records if possible
-oldRegs = NULL #this will remain NULL if old records not found
-if('regDash' %in% gs_ls()$sheet_title){
-    dash = gs_title('regDash')
-    oldRegs = gs_read(dash)
+gsheets = googlesheets4::gs4_find()
+remote_sheet_exists = 'regDash' %in% gsheets$name
+if(remote_sheet_exists){
+    sheetID = gsheets$id[gsheets$name == 'regDash']
+    # dash = gs_title('regDash')
+    oldRegs = googlesheets4::read_sheet(sheetID,
+                                        col_types = 'cccccccccccc')
     oldRegs[is.na(oldRegs)] = ''
     message('Old records loaded.')
     noRecords = FALSE
@@ -62,6 +68,7 @@ today = format.Date(todayRaw, format='%m/%d/%y', tz='PST')
 #this should ensure that no open comment periods are omitted
 noPrevRun = !(file.exists('dash_lastRun.txt'))
 if(noPrevRun | noRecords){
+
     startDate = format.Date(todayRaw-deepSearch, format='%m/%d/%y', tz='PST')
     file.create('dash_lastRun.txt')
     conn = file('dash_lastRun.txt')
@@ -72,21 +79,23 @@ if(noPrevRun | noRecords){
     } else {
         message(paste0('No existing data found. Setting start date to ',startDate,'.'))
     }
-}
 
-#otherwise, load the last run date and decrement by lookBack to grab potential late entries
-conn = file('dash_lastRun.txt')
-lastRun = readLines(conn) #read it
-if(!noPrevRun & !noRecords){
-    startDate = as.Date(lastRun, format='%m/%d/%y', tz='PST')-lookBack #subtract a week
-    startDate = format.Date(startDate, format='%m/%d/%y') #reformat
+} else {
+
+    #otherwise, load the last run date and decrement by lookBack to grab potential late entries
+    conn = file('dash_lastRun.txt')
+    lastRun = readLines(conn) #read it
+    if(!noPrevRun & !noRecords){
+        startDate = as.Date(lastRun, format='%m/%d/%y', tz='PST')-lookBack #subtract a week
+        startDate = format.Date(startDate, format='%m/%d/%y') #reformat
+    }
+    writeLines(today, conn) #overwrite file with today's date
+    close(conn)
 }
-writeLines(today, conn) #overwrite file with today's date
-close(conn)
 
 #find range of records that are now obsolete and write their row indices to a file
 # todayRaw = todayRaw+1 #for testing
-if(!noPrevRun & !noRecords){
+if(! noRecords){
     message('Identifying obsolete records.')
     obsoleteRows = which(as.Date(oldRegs$comments_close_on,format='%m/%d/%Y',tz='PST') < todayRaw |
                                (oldRegs$comments_close_on == '' &
@@ -102,6 +111,7 @@ if(noPrevRun | noRecords){
 } else {
     message(paste0('Last run date: ',lastRun,'. (Re)retrieving records published after ',startDate,'.'))
 }
+
 span = as.numeric(todayRaw - as.Date(startDate, format='%m/%d/%y', tz='PST'))
 nchunks = ceiling(span/30)
 newRegs = NULL
@@ -134,23 +144,26 @@ newRegs = newRegs %>%
 # }
 
 #create google sheet if this is first run
-if(!'regDash' %in% gs_ls()$sheet_title){
+if(! remote_sheet_exists){
     message('Creating new Google Sheet. Populating with all records.')
     allRegs = rbind.fill(oldRegs, newRegs)
-    write.csv(allRegs, 'fedRegOut.csv', row.names=FALSE)
-    gs_upload('fedRegOut.csv', sheet_title='regDash')
+    # write.csv(allRegs, 'fedRegOut.csv', row.names=FALSE)
+    googlesheets4::write_sheet(data = allRegs,
+                               ss = sheetID,
+                               sheet = 1)
     # dash = gs_new('fedRegDash', input=allRegs, trim=TRUE, verbose=FALSE)
 }
 
 # write new regs to a file
 write.csv(newRegs, 'newRegs.csv', row.names=FALSE)
 
-message(writeLines(paste0('If this is not the first run-through, ',
-                         'source 05_delete_rows.py next.\nThen source 06_add_rows.R.')))
+# message(writeLines(paste0('If this is not the first run-through, ',
+#                          'source 05_delete_rows.py next.\nThen source 06_add_rows.R.')))
 
-#would be great to call Python from R, but so far no luck
-#here's how to make it work on windows, apparently: https://github.com/cjgb/rPython-win
-# python.load('06_delete_rows.py')
+if(remote_sheet_exists){
+    source('05_delete_rows.R')
+    source('06_add_rows.R')
+}
 
 # runTime = proc.time() - ptm
 # message(paste('Run completed in',round(runTime[3]/60,2),'minutes.'))

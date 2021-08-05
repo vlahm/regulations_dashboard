@@ -1,6 +1,3 @@
-rm(list=ls()); cat('\014')
-library(googlesheets)
-
 #delete relay file 1
 x = file.remove('obsoleteRows.csv')
 
@@ -8,15 +5,14 @@ x = file.remove('obsoleteRows.csv')
 newRegs = read.csv('newRegs.csv', stringsAsFactors=FALSE)
 
 #load google sheet
-dash = gs_title('regDash')
+regDash_deets = googlesheets4::gs4_find('regDash')
 
 #append new rows to the goog sheet
 nRegs = nrow(newRegs)
 if(nRegs == 0){
     message('No new records to add. Taking no action.')
 } else {
-    message(writeLines(paste0('Appending ', nRegs, ' new records to Google Sheet.\n',
-                              'This will take about ', round(nRegs*2.5/60, 1), ' minutes.')))
+    message(paste0('Appending ', nRegs, ' new records to Google Sheet.'))
 
 
     #break large sets into chunks because gs_add_row fails when it gets overwhelmed
@@ -28,7 +24,9 @@ if(nRegs == 0){
         } else {
             newEnd = i*100
         }
-        gs_add_row(dash, input=newRegs[newStart:newEnd,], verbose=FALSE)
+        googlesheets4::sheet_append(ss = regDash_deets$id,
+                                    data = newRegs[newStart:newEnd,],
+                                    sheet = 1)
     }
 }
 
