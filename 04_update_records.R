@@ -41,7 +41,7 @@ for(i in c(package_list)) library(i, character.only=TRUE)
 source('03_functions.R')
 
 #authorize tidyverse to communicate with google sheets
-# googlesheets4::gs4_auth(path = 'regdash-cc3be28576b9.json')
+googlesheets4::gs4_auth(path = 'regdash-cc3be28576b9.json')
 
 # token = gs_auth()
 # saveRDS(token, 'gs_token.rds')
